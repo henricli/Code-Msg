@@ -510,11 +510,6 @@
       ✅ Conta criada! Verifique seu email e clique no link de confirmação antes de fazer login.
     </div>
 
-    <div class="auth-tabs">
-      <button class="auth-tab active" onclick="switchTab('login')">Entrar</button>
-      <button class="auth-tab" onclick="switchTab('register')">Cadastrar</button>
-    </div>
-
     <div class="auth-form" id="auth-form">
       <div class="input-group" id="username-group" style="display:none">
         <label>Nome de usuário</label>
@@ -530,6 +525,9 @@
       </div>
       <div class="auth-msg" id="auth-msg"></div>
       <button class="btn-primary" id="auth-btn" onclick="handleAuth()">Entrar</button>
+      <p id="switch-link" style="text-align:center; margin-top:12px; font-size:14px; color:var(--text2);">
+        Não tem conta? <a href="#" onclick="switchTab('register'); return false;" id="switch-anchor" style="color:var(--accent); font-weight:700; text-decoration:none;">Criar uma conta</a>
+      </p>
     </div>
   </div>
 </div>
@@ -600,11 +598,16 @@ let currentTab = 'login';
 // ── TABS ──
 function switchTab(tab) {
   currentTab = tab;
-  document.querySelectorAll('.auth-tab').forEach((t,i) => {
-    t.classList.toggle('active', (i===0 && tab==='login') || (i===1 && tab==='register'));
-  });
   document.getElementById('username-group').style.display = tab === 'register' ? 'flex' : 'none';
   document.getElementById('auth-btn').textContent = tab === 'login' ? 'Entrar' : 'Criar conta';
+
+  const anchor = document.getElementById('switch-anchor');
+  const switchLink = document.getElementById('switch-link');
+  if (tab === 'login') {
+    switchLink.innerHTML = 'Não tem conta? <a href="#" onclick="switchTab(\'register\'); return false;" id="switch-anchor" style="color:var(--accent); font-weight:700; text-decoration:none;">Criar uma conta</a>';
+  } else {
+    switchLink.innerHTML = 'Já tem conta? <a href="#" onclick="switchTab(\'login\'); return false;" id="switch-anchor" style="color:var(--accent); font-weight:700; text-decoration:none;">Entrar</a>';
+  }
   clearMsg();
 }
 
