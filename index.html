@@ -291,7 +291,7 @@ window.doReg=async function(){
   if(r.data.user){
     await sb.from('profiles').upsert({id:r.data.user.id,username:n,handle:h});
     if(r.data.session){initApp(r.data.user);}
-    else{amsg('rg-msg','✅ Verifique seu email para ativar!','s');btn.disabled=false;btn.textContent='Criar conta';}
+    else{amsg('rg-msg','✅ Verifique seu email!','s');btn.disabled=false;btn.textContent='Criar conta';}
   }
 };
 
