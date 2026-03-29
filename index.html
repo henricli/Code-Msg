@@ -513,12 +513,18 @@ async function loadChannels(){
 
 function showChannelList(){
   document.getElementById('sb-title').innerHTML='Code <span style="color:var(--accent)">MSG</span>';
-  var html='<div class="sb-lbl">Canais</div><div id="ch-list">';
-  chs.forEach(function(c){html+='<div class="ch-item" data-id="'+c.id+'" onclick="selChById(''+c.id+'')"><span class="hsh">#</span><span>'+esc(c.name)+'</span></div>';});
-  html+='</div>';
-  document.getElementById('sb-content').innerHTML=html;
-  if(ch){var el=document.querySelector('.ch-item[data-id="'+ch.id+'"]');if(el)el.classList.add('on');}
+  var sbc=document.getElementById('sb-content');
+  sbc.innerHTML='';
+  var lbl=document.createElement('div');lbl.className='sb-lbl';lbl.textContent='Canais';sbc.appendChild(lbl);
+  chs.forEach(function(c){
+    var el=document.createElement('div');el.className='ch-item';el.dataset.id=c.id;
+    el.innerHTML='<span class="hsh">#</span><span>'+esc(c.name)+'</span>';
+    el.onclick=function(){window.selChById(c.id);};
+    sbc.appendChild(el);
+  });
+  if(ch){var a=sbc.querySelector('.ch-item[data-id="'+ch.id+'"]');if(a)a.classList.add('on');}
 }
+window.go=go;
 
 window.selChById=function(id){
   var c=chs.find(function(x){return x.id===id;});
