@@ -4,6 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Code MSG</title>
+<link rel="icon" type="image/png" href="icone.png"/>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -144,7 +145,7 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);height
     <!-- ícone + nome -->
     <div class="ic-wrap">
       <div class="ic-glow"></div>
-      <div class="ic-img" style="font-size:44px;line-height:1">💬</div>
+      <div class="ic-img"><img src="icone.png" style="width:62px;height:62px;object-fit:contain;filter:brightness(10)" alt="icon"/></div>
     </div>
     <div class="brand">
       <h1>Code <span>MSG</span></h1>
@@ -205,7 +206,7 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);height
 <div id="app">
   <div class="sidebar">
     <div class="sb-hd">
-      <div class="sb-ico" style="font-size:16px">💬</div>
+      <div class="sb-ico"><img src="icone.png" style="width:20px;height:20px;object-fit:contain;filter:brightness(10)" alt="logo"/></div>
       <div class="sb-ttl">Code <span>MSG</span></div>
     </div>
     <div class="sb-chs">
@@ -413,6 +414,23 @@ window.doOut=async function(){
 
 sb.auth.getSession().then(function(r){if(r.data.session?.user)initApp(r.data.session.user);});
 sb.auth.onAuthStateChange(function(e,s){if(e==='SIGNED_IN'&&s?.user&&!me)initApp(s.user);});
+
+// Captura token do email de verificação na URL
+(async function(){
+  var hash=window.location.hash;
+  if(hash&&hash.includes('access_token')){
+    var params=new URLSearchParams(hash.substring(1));
+    var accessToken=params.get('access_token');
+    var refreshToken=params.get('refresh_token');
+    if(accessToken&&refreshToken){
+      var r=await sb.auth.setSession({access_token:accessToken,refresh_token:refreshToken});
+      if(r.data?.user){
+        window.history.replaceState(null,'',window.location.pathname);
+        initApp(r.data.user);
+      }
+    }
+  }
+})();
 })();
 </script>
 </body>
