@@ -264,8 +264,8 @@ input:-webkit-autofill:focus {
         <div class="fg"><label>Email</label><input type="email" id="li-e" placeholder="seu@email.com"/></div>
         <div class="fg"><label>Senha</label><input type="password" id="li-p" placeholder="••••••••"/></div>
         <div class="alert" id="li-msg"></div>
-        <button class="btn-p" id="li-btn" onclick="doLogin()">Entrar</button>
-        <div class="lnk">Não tem conta? <span onclick="go('s-reg')">Criar uma conta</span></div>
+        <button class="btn-p" id="li-btn" onclick="window.doLogin()">Entrar</button>
+        <div class="lnk">Não tem conta? <span onclick="window.go('s-reg')">Criar uma conta</span></div>
       </div>
       <div id="s-reg" class="step">
         <div class="ttl">Criar conta 🚀</div>
@@ -277,8 +277,8 @@ input:-webkit-autofill:focus {
         <div class="fg"><label>Email</label><input type="email" id="rg-e" placeholder="seu@email.com"/></div>
         <div class="fg"><label>Senha</label><input type="password" id="rg-p" placeholder="mínimo 6 caracteres"/></div>
         <div class="alert" id="rg-msg"></div>
-        <button class="btn-p" id="rg-btn" onclick="doReg()">Criar conta</button>
-        <div class="lnk">Já tem conta? <span onclick="go('s-login')">Entrar</span></div>
+        <button class="btn-p" id="rg-btn" onclick="window.doReg()">Criar conta</button>
+        <div class="lnk">Já tem conta? <span onclick="window.go('s-login')">Entrar</span></div>
       </div>
     </div>
   </div>
@@ -288,12 +288,12 @@ input:-webkit-autofill:focus {
 <div id="app">
   <!-- Barra de servidores (estilo Discord) -->
   <div class="srv-bar">
-    <div class="srv-logo" onclick="showChannels()" title="Code MSG">
+    <div class="srv-logo" onclick="window.showChannels()" title="Code MSG">
       <img src="icone2.png" alt="logo"/>
     </div>
     <div class="srv-div"></div>
-    <button class="srv-btn" id="btn-dms" onclick="showDMs()" title="Mensagens diretas">💬</button>
-    <button class="srv-btn" id="btn-friends" onclick="openFriends()" title="Amigos">👥</button>
+    <button class="srv-btn" id="btn-dms" onclick="window.showDMs()" title="Mensagens diretas">💬</button>
+    <button class="srv-btn" id="btn-friends" onclick="window.openFriends()" title="Amigos">👥</button>
   </div>
 
   <!-- Sidebar -->
@@ -306,7 +306,7 @@ input:-webkit-autofill:focus {
       <div id="ch-list"></div>
     </div>
     <div class="sb-user">
-      <div class="u-av" id="u-av" onclick="openProfile()" title="Editar perfil">
+      <div class="u-av" id="u-av" onclick="window.openProfile()" title="Editar perfil">
         <span id="u-av-txt">?</span>
       </div>
       <div class="u-info">
@@ -314,8 +314,8 @@ input:-webkit-autofill:focus {
         <div class="u-handle" id="u-hd">@...</div>
       </div>
       <div class="u-actions">
-        <button class="icon-btn" onclick="openProfile()" title="Perfil">⚙️</button>
-        <button class="icon-btn danger" onclick="doOut()" title="Sair">⏏</button>
+        <button class="icon-btn" onclick="window.openProfile()" title="Perfil">⚙️</button>
+        <button class="icon-btn danger" onclick="window.doOut()" title="Sair">⏏</button>
       </div>
     </div>
   </div>
@@ -327,7 +327,7 @@ input:-webkit-autofill:focus {
       <span class="chat-nm" id="ch-nm">geral</span>
       <span class="chat-desc" id="ch-desc"></span>
       <div class="chat-actions">
-        <button class="icon-btn" onclick="toggleMembers()" title="Membros">👥</button>
+        <button class="icon-btn" onclick="window.toggleMembers()" title="Membros">👥</button>
       </div>
     </div>
     <div class="msgs" id="msgs">
@@ -341,7 +341,7 @@ input:-webkit-autofill:focus {
     <div class="inp-area">
       <div class="inp-wr">
         <textarea id="mi" rows="1" placeholder="Mensagem..."></textarea>
-        <button class="btn-s" onclick="sendMsg()">➤</button>
+        <button class="btn-s" onclick="window.sendMsg()">➤</button>
       </div>
     </div>
   </div>
@@ -364,7 +364,7 @@ input:-webkit-autofill:focus {
       <label>Adicionar amigo por @</label>
       <div style="display:flex;gap:8px">
         <input type="text" id="add-friend-input" placeholder="@usuario" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:14px;font-family:'Syne',sans-serif;outline:none"/>
-        <button class="btn-p" style="width:auto;padding:10px 16px" onclick="addFriend()">Adicionar</button>
+        <button class="btn-p" style="width:auto;padding:10px 16px" onclick="window.addFriend()">Adicionar</button>
       </div>
     </div>
     <div id="friends-list" style="display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto"></div>
@@ -388,7 +388,7 @@ input:-webkit-autofill:focus {
     <div class="fg"><label>Descrição</label><input type="text" id="prof-desc" placeholder="Fale um pouco sobre você..."/></div>
     <div class="fg"><label>@ da conta</label><input type="text" id="prof-handle" placeholder="seu_usuario" disabled style="opacity:.5"/></div>
     <div class="alert" id="prof-msg"></div>
-    <button class="btn-p" onclick="saveProfile()">Salvar perfil</button>
+    <button class="btn-p" onclick="window.saveProfile()">Salvar perfil</button>
   </div>
 </div>
 
@@ -419,6 +419,7 @@ function bg(){
 }bg();
 
 function go(id){document.querySelectorAll('.step').forEach(function(s){s.classList.remove('on');});document.getElementById(id).classList.add('on');}
+window.go=go;
 function amsg(id,txt,tp){var el=document.getElementById(id);el.textContent=txt;el.className='alert '+tp;}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function notify(msg,type){var n=document.createElement('div');n.className='notif '+(type||'success');n.textContent=msg;document.body.appendChild(n);setTimeout(function(){n.remove();},3000);}
