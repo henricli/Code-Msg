@@ -337,7 +337,6 @@ input:-webkit-autofill:focus {
         <div class="empty-s">Seja o primeiro a falar!</div>
       </div>
     </div>
-    <div class="onl"><span class="dot"></span>Tempo real ativo</div>
     <div class="inp-area">
       <div class="inp-wr">
         <textarea id="mi" rows="1" placeholder="Mensagem..."></textarea>
@@ -371,6 +370,24 @@ input:-webkit-autofill:focus {
   </div>
 </div>
 
+<!-- MODAL VER PERFIL -->
+<div class="modal-overlay" id="modal-view-profile">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>👤 Perfil</h2>
+      <button class="modal-close" onclick="window.closeModal('modal-view-profile')">✕</button>
+    </div>
+    <div class="profile-av-wrap">
+      <div class="profile-av" id="vp-av" style="cursor:default"></div>
+    </div>
+    <div style="text-align:center">
+      <div style="font-size:20px;font-weight:800" id="vp-name"></div>
+      <div style="font-size:13px;color:var(--p);font-family:'JetBrains Mono',monospace;margin-top:4px" id="vp-handle"></div>
+      <div style="font-size:14px;color:var(--muted);margin-top:12px;line-height:1.5" id="vp-bio"></div>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL PERFIL -->
 <div class="modal-overlay" id="modal-profile">
   <div class="modal">
@@ -385,7 +402,7 @@ input:-webkit-autofill:focus {
       <input type="file" id="avatar-input" accept="image/*" onchange="uploadAvatar(this)"/>
     </div>
     <div class="fg"><label>Nome</label><input type="text" id="prof-name" placeholder="Seu nome"/></div>
-    <div class="fg"><label>Descrição</label><input type="text" id="prof-desc" placeholder="Fale um pouco sobre você..."/></div>
+    <div class="fg"><label>Descrição / Bio</label><textarea id="prof-desc" placeholder="Fale um pouco sobre você..." style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:11px 14px;color:var(--text);font-size:14px;font-family:Syne,sans-serif;outline:none;transition:border-color .2s;width:100%;resize:none;height:80px;line-height:1.5"></textarea></div>
     <div class="fg"><label>@ da conta</label><input type="text" id="prof-handle" placeholder="seu_usuario" disabled style="opacity:.5"/></div>
     <div class="alert" id="prof-msg"></div>
     <button class="btn-p" onclick="window.saveProfile()">Salvar perfil</button>
@@ -481,6 +498,7 @@ async function initApp(u){
   updateUserUI();
   await loadChannels();
   await loadMembers();
+  window.showDMs();
   var inp=document.getElementById('mi');
   inp.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}});
   inp.addEventListener('input',function(){this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px';});
@@ -530,7 +548,7 @@ window.selChById=function(id){
   var c=chs.find(function(x){return x.id===id;});
   if(c)selCh(c);
 };
-window.showChannels=function(){dmMode=false;showChannelList();document.getElementById('btn-dms').classList.remove('on');};
+window.showChannels=function(){dmMode=false;showChannelList();document.getElementById('btn-dms').classList.remove('on');document.getElementById('member-bar').style.display='flex';};
 
 async function selCh(c){
   ch=c;dmMode=false;dmTarget=null;
@@ -562,6 +580,7 @@ window.showDMs=async function(){
     sbc.appendChild(empty);
     return;
   }
+  document.getElementById("member-bar").style.display="none";
   friends.forEach(function(f){
     var other=f.user_id===me.id?f.friend:f.user;
     if(!other)return;
@@ -726,11 +745,27 @@ async function loadMembers(){
     var av=getAv(p);
     var el=document.createElement('div');el.className='mb-item';
     el.innerHTML='<div class="mb-av">'+av+'<span class="online-dot"></span></div><div class="mb-info"><div class="mb-name">'+esc(p.username||'?')+'</div><div class="mb-handle">@'+esc(p.handle||'')+'</div></div>';
+    var pid=p.id;
+    el.onclick=function(){window.viewProfile(pid);};
     list.appendChild(el);
   });
 }
 
 window.toggleMembers=function(){showMb=!showMb;document.getElementById('member-bar').style.display=showMb?'flex':'none';};
+
+window.viewProfile=function(userId){
+  sb.from('profiles').select('*').eq('id',userId).single().then(function(r){
+    if(!r.data)return;
+    var p=r.data;
+    var modal=document.getElementById('modal-view-profile');
+    var av=p.avatar_url?'<img src="'+p.avatar_url+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%" alt=""/>':((p.username||'?')[0].toUpperCase());
+    modal.querySelector('#vp-av').innerHTML=av;
+    modal.querySelector('#vp-name').textContent=p.username||'?';
+    modal.querySelector('#vp-handle').textContent='@'+(p.handle||'');
+    modal.querySelector('#vp-bio').textContent=p.bio||'Sem descrição.';
+    modal.classList.add('on');
+  });
+};
 
 /* MSGS CANAL */
 async function loadMsgs(){
@@ -754,7 +789,8 @@ function renderMsgs(msgs){
     var g=document.createElement('div');
     if(last!==m.user_id){
       g.className='mg';
-      g.innerHTML='<div class="mg-av">'+avC+'</div><div class="mg-body"><div class="mg-header"><span class="mg-author" style="color:'+color+'">'+esc(au)+'</span><span class="mg-handle">@'+esc(hd)+'</span><span class="mg-time">'+time+'</span></div><div class="mg-content">'+esc(m.content)+'</div></div>';
+      var uid=m.user_id;
+    g.innerHTML='<div class="mg-av" onclick="window.viewProfile(\''+uid+'\')" style="cursor:pointer">'+avC+'</div><div class="mg-body"><div class="mg-header"><span class="mg-author" style="color:'+color+';cursor:pointer" onclick="window.viewProfile(\''+uid+'\')" >'+esc(au)+'</span><span class="mg-handle">@'+esc(hd)+'</span><span class="mg-time">'+time+'</span></div><div class="mg-content">'+esc(m.content)+'</div></div>';
     } else {
       g.className='mg-cont';
       g.innerHTML='<div class="mg-content">'+esc(m.content)+'</div>';
@@ -860,6 +896,9 @@ window.doOut=async function(){
     }
   }
 })();
+
+// Refresh members every 30s
+setInterval(function(){if(me)loadMembers();}, 30000);
 
 sb.auth.getSession().then(function(r){if(r.data.session&&r.data.session.user)initApp(r.data.session.user);});
 sb.auth.onAuthStateChange(function(e,s){if(e==='SIGNED_IN'&&s&&s.user&&!me)initApp(s.user);});
