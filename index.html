@@ -552,18 +552,28 @@ window.showDMs=async function(){
     .or('user_id.eq.'+me.id+',friend_id.eq.'+me.id)
     .eq('status','accepted');
   var friends=r.data||[];
-  var html='<div class="sb-lbl">Amigos</div>';
-  if(!friends.length){html+='<div style="padding:12px;font-size:13px;color:var(--muted)">Nenhum amigo. Use o botao amigos!</div>';}
+  var sbc=document.getElementById('sb-content');
+  sbc.innerHTML='';
+  var lbl=document.createElement('div');lbl.className='sb-lbl';lbl.textContent='Amigos';sbc.appendChild(lbl);
+  if(!friends.length){
+    var empty=document.createElement('div');
+    empty.style.cssText='padding:12px;font-size:13px;color:var(--muted)';
+    empty.textContent='Nenhum amigo. Use o botao amigos!';
+    sbc.appendChild(empty);
+    return;
+  }
   friends.forEach(function(f){
     var other=f.user_id===me.id?f.friend:f.user;
     if(!other)return;
     var av=getAv(other);
-    var enc=encodeURIComponent(JSON.stringify(other));
-    html+='<div class="dm-item" onclick="selDMEnc(''+enc+'')"><div class="dm-av">'+av+'</div><div class="dm-info"><div class="dm-name">'+esc(other.username||'?')+'</div><div class="dm-preview">@'+esc(other.handle||'')+'</div></div></div>';
+    var el=document.createElement('div');
+    el.className='dm-item';
+    el.innerHTML='<div class="dm-av">'+av+'</div><div class="dm-info"><div class="dm-name">'+esc(other.username||'?')+'</div><div class="dm-preview">@'+esc(other.handle||'')+'</div></div>';
+    var otherData=other;
+    el.onclick=function(){selDM(otherData);};
+    sbc.appendChild(el);
   });
-  document.getElementById('sb-content').innerHTML=html;
-};
-
+}
 window.selDMEnc=function(enc){
   var other=JSON.parse(decodeURIComponent(enc));
   selDM(other);
@@ -637,30 +647,51 @@ async function loadFriendsList(){
   var r=await sb.from('friendships')
     .select('*,friend:friend_id(username,handle,avatar_url),user:user_id(username,handle,avatar_url)')
     .or('user_id.eq.'+me.id+',friend_id.eq.'+me.id);
-  var list=document.getElementById('friends-list');list.innerHTML='';
+  var list=document.getElementById('friends-list');
+  list.innerHTML='';
   var data=r.data||[];
-  if(!data.length){list.innerHTML='<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px">Nenhum amigo ainda!</div>';return;}
+  if(!data.length){
+    list.innerHTML='<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px">Nenhum amigo ainda!</div>';
+    return;
+  }
   data.forEach(function(f){
-    var isMe=f.user_id===me.id;
-    var other=isMe?f.friend:f.user;
+    var isOwner=f.user_id===me.id;
+    var other=isOwner?f.friend:f.user;
     if(!other)return;
     var isPending=f.status==='pending';
-    var isIncoming=isPending&&!isMe;
+    var isIncoming=isPending&&!isOwner;
     var av=getAv(other);
-    var el=document.createElement('div');
-    el.style.cssText='display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg3);border-radius:8px';
-    var statusHtml=isPending?(' <span style="font-size:11px;color:'+(isIncoming?'var(--accent)':'var(--muted)')+';">'+(isIncoming?'Pedido recebido':'Pendente')+'</span>'):'';
-    var btns='';
-    if(isIncoming)btns+='<button onclick="acceptFriend(''+f.id+'')" style="background:var(--accent);color:#000;border:none;border-radius:6px;padding:5px 10px;font-weight:700;cursor:pointer;font-size:12px;white-space:nowrap">Aceitar</button>';
-    if(f.status==='accepted'){
-      var enc=encodeURIComponent(JSON.stringify(other));
-      btns+='<button onclick="startDMEnc(''+enc+'')" style="background:var(--p);color:#fff;border:none;border-radius:6px;padding:5px 10px;font-weight:700;cursor:pointer;font-size:12px">DM</button>';
+    var row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg3);border-radius:8px';
+    var avEl=document.createElement('div');
+    avEl.style.cssText='width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--p),var(--accent));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;overflow:hidden;flex-shrink:0';
+    avEl.innerHTML=av;
+    var info=document.createElement('div');
+    info.style.cssText='flex:1;min-width:0';
+    var statusText=isPending?(isIncoming?'Pedido recebido':'Pendente'):'';
+    var statusColor=isIncoming?'var(--accent)':'var(--muted)';
+    info.innerHTML='<div style="font-size:14px;font-weight:700">'+esc(other.username||'?')+'</div><div style="font-size:12px;color:var(--muted)">@'+esc(other.handle||'')+(statusText?' <span style="color:'+statusColor+'">'+statusText+'</span>':'')+'</div>';
+    row.appendChild(avEl);
+    row.appendChild(info);
+    if(isIncoming){
+      var acceptBtn=document.createElement('button');
+      acceptBtn.textContent='Aceitar';
+      acceptBtn.style.cssText='background:var(--accent);color:#000;border:none;border-radius:6px;padding:5px 10px;font-weight:700;cursor:pointer;font-size:12px;white-space:nowrap';
+      acceptBtn.dataset.fid=f.id;
+      acceptBtn.onclick=function(){window.acceptFriend(this.dataset.fid);};
+      row.appendChild(acceptBtn);
     }
-    el.innerHTML='<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--p),var(--accent));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;overflow:hidden;flex-shrink:0">'+av+'</div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">'+esc(other.username||'?')+'</div><div style="font-size:12px;color:var(--muted)">@'+esc(other.handle||'')+statusHtml+'</div></div>'+btns;
-    list.appendChild(el);
+    if(f.status==='accepted'){
+      var dmBtn=document.createElement('button');
+      dmBtn.textContent='DM';
+      dmBtn.style.cssText='background:var(--p);color:#fff;border:none;border-radius:6px;padding:5px 10px;font-weight:700;cursor:pointer;font-size:12px';
+      var otherData=JSON.stringify(other);
+      dmBtn.onclick=function(){window.startDMEnc(encodeURIComponent(otherData));};
+      row.appendChild(dmBtn);
+    }
+    list.appendChild(row);
   });
 }
-
 window.addFriend=async function(){
   var input=document.getElementById('add-friend-input').value.trim().replace('@','');
   if(!input){notify('Digite um @usuario!','error');return;}
