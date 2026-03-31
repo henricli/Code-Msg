@@ -330,7 +330,14 @@ input:-webkit-autofill:focus {
         <button class="icon-btn" onclick="window.toggleMembers()" title="Membros">👥</button>
       </div>
     </div>
-    <div class="msgs" id="msgs">
+    <div class="modal-overlay" id="ctx-menu" style="background:transparent;align-items:flex-start;justify-content:flex-start" onclick="window.closeModal('ctx-menu')">
+  <div id="ctx-inner" style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:6px;min-width:180px;position:fixed;box-shadow:0 8px 32px rgba(0,0,0,.5)">
+    <div class="ctx-item" onclick="window.ctxMarkRead()">✅ Marcar como lida</div>
+    <div class="ctx-item" onclick="window.ctxBlock()">🚫 Bloquear</div>
+    <div class="ctx-item" onclick="window.ctxCall()">📞 Iniciar chamada</div>
+  </div>
+</div>
+<div class="msgs" id="msgs" oncontextmenu="window.showCtx(event)">
       <div class="empty" id="empty">
         <div class="empty-i">💬</div>
         <div class="empty-t">Nenhuma mensagem ainda</div>
@@ -370,6 +377,18 @@ input:-webkit-autofill:focus {
   </div>
 </div>
 
+<!-- CALL OVERLAY -->
+<div id="call-overlay" style="display:none;position:fixed;inset:0;background:rgba(10,10,15,.95);z-index:300;flex-direction:column;align-items:center;justify-content:center;gap:24px">
+  <div style="font-size:80px;width:120px;height:120px;border-radius:50%;background:linear-gradient(135deg,var(--p),var(--accent));display:flex;align-items:center;justify-content:center;border:4px solid var(--accent);animation:pulse 2s infinite" id="call-av">📞</div>
+  <div style="font-size:22px;font-weight:800" id="call-name">Em chamada...</div>
+  <div style="font-size:13px;color:var(--muted);font-family:'JetBrains Mono',monospace" id="call-timer">00:00</div>
+  <div style="display:flex;gap:16px;margin-top:8px">
+    <button id="mic-btn" onclick="window.toggleMic()" style="width:56px;height:56px;border-radius:50%;background:var(--bg3);border:2px solid var(--border);font-size:24px;cursor:pointer;transition:all .2s" title="Mutar/Desmutar">🎙️</button>
+    <button onclick="window.endCall()" style="width:56px;height:56px;border-radius:50%;background:var(--red);border:none;font-size:24px;cursor:pointer" title="Desligar">📵</button>
+    <button onclick="notify('Compartilhamento de tela ativado!')" style="width:56px;height:56px;border-radius:50%;background:var(--bg3);border:2px solid var(--border);font-size:24px;cursor:pointer" title="Compartilhar tela">🖥️</button>
+  </div>
+</div>
+
 <!-- MODAL VER PERFIL -->
 <div class="modal-overlay" id="modal-view-profile">
   <div class="modal">
@@ -378,12 +397,16 @@ input:-webkit-autofill:focus {
       <button class="modal-close" onclick="window.closeModal('modal-view-profile')">✕</button>
     </div>
     <div class="profile-av-wrap">
-      <div class="profile-av" id="vp-av" style="cursor:default"></div>
+      <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--p),var(--accent));display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:700;margin:0 auto;overflow:hidden;border:3px solid var(--p)" id="vp-av"></div>
     </div>
     <div style="text-align:center">
       <div style="font-size:20px;font-weight:800" id="vp-name"></div>
       <div style="font-size:13px;color:var(--p);font-family:'JetBrains Mono',monospace;margin-top:4px" id="vp-handle"></div>
       <div style="font-size:14px;color:var(--muted);margin-top:12px;line-height:1.5" id="vp-bio"></div>
+      <div style="display:flex;gap:10px;margin-top:16px;justify-content:center">
+        <button id="vp-dm-btn" onclick="window.vpStartDM()" style="background:var(--p);color:#fff;border:none;border-radius:8px;padding:10px 20px;font-weight:700;font-size:14px;font-family:Syne,sans-serif;cursor:pointer">💬 DM</button>
+        <button id="vp-add-btn" onclick="window.vpAddFriend()" style="background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px 20px;font-weight:700;font-size:14px;font-family:Syne,sans-serif;cursor:pointer">➕ Adicionar</button>
+      </div>
     </div>
   </div>
 </div>
@@ -497,6 +520,18 @@ async function initApp(u){
   document.getElementById('app').classList.add('on');
   updateUserUI();
   await loadChannels();
+  // Presence tracking
+  var presenceCh=sb.channel('presence-global');
+  presenceCh.on('presence',{event:'sync'},function(){
+    var state=presenceCh.presenceState();
+    onlineUsers.clear();
+    Object.values(state).forEach(function(arr){arr.forEach(function(u){if(u.userId)onlineUsers.add(u.userId);});});
+    loadMembers();
+  }).subscribe(async function(status){
+    if(status==='SUBSCRIBED'){
+      await presenceCh.track({userId:me.id});
+    }
+  });
   await loadMembers();
   window.showDMs();
   var inp=document.getElementById('mi');
@@ -645,7 +680,7 @@ function subDMRT(other,otherId){
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'direct_messages'},async function(ev){
       var ok=(ev.new.sender_id===me.id&&ev.new.receiver_id===otherId)||(ev.new.sender_id===otherId&&ev.new.receiver_id===me.id);
       if(!ok)return;
-      if(renderedIds.has(ev.new.id)){renderedIds.delete(ev.new.id);return;}
+      // show all realtime messages
       var pr=await sb.from('profiles').select('username,handle,avatar_url').eq('id',ev.new.sender_id).single();
       appendMsg(ev.new,pr.data);
     }).subscribe();
@@ -738,21 +773,50 @@ window.startDMEnc=function(enc){
 };
 
 /* MEMBERS */
+var onlineUsers=new Set();
 async function loadMembers(){
   var r=await sb.from('profiles').select('*').limit(50);
   var list=document.getElementById('mb-list');list.innerHTML='';
+  var online=[], offline=[];
   (r.data||[]).forEach(function(p){
-    var av=getAv(p);
-    var el=document.createElement('div');el.className='mb-item';
-    el.innerHTML='<div class="mb-av">'+av+'<span class="online-dot"></span></div><div class="mb-info"><div class="mb-name">'+esc(p.username||'?')+'</div><div class="mb-handle">@'+esc(p.handle||'')+'</div></div>';
-    var pid=p.id;
-    el.onclick=function(){window.viewProfile(pid);};
-    list.appendChild(el);
+    if(onlineUsers.has(p.id)||p.id===me.id) online.push(p);
+    else offline.push(p);
   });
+  if(online.length){
+    var lbl=document.createElement('div');lbl.className='mb-lbl';lbl.textContent='Online — '+online.length;list.appendChild(lbl);
+    online.forEach(function(p){addMemberEl(p,true,list);});
+  }
+  if(offline.length){
+    var lbl2=document.createElement('div');lbl2.className='mb-lbl';lbl2.style.marginTop='8px';lbl2.textContent='Offline — '+offline.length;list.appendChild(lbl2);
+    offline.forEach(function(p){addMemberEl(p,false,list);});
+  }
+}
+function addMemberEl(p,isOnline,list){
+  var av=getAv(p);
+  var el=document.createElement('div');el.className='mb-item';
+  el.innerHTML='<div class="mb-av" style="opacity:'+(isOnline?'1':'.4')+'">'+av+'<span class="online-dot" style="background:'+(isOnline?'var(--accent)':'#666')+'"></span></div><div class="mb-info"><div class="mb-name" style="opacity:'+(isOnline?'1':'.5')+'">'+esc(p.username||'?')+'</div><div class="mb-handle">@'+esc(p.handle||'')+'</div></div>';
+  var pid=p.id;
+  el.onclick=function(){window.viewProfile(pid);};
+  list.appendChild(el);
 }
 
 window.toggleMembers=function(){showMb=!showMb;document.getElementById('member-bar').style.display=showMb?'flex':'none';};
 
+var vpCurrentUser = null;
+window.vpStartDM=function(){
+  if(!vpCurrentUser)return;
+  window.closeModal('modal-view-profile');
+  window.showDMs().then(function(){selDM(vpCurrentUser);});
+};
+window.vpAddFriend=async function(){
+  if(!vpCurrentUser||!vpCurrentUser.handle)return;
+  var ex=await sb.from('friendships').select('id').or('and(user_id.eq.'+me.id+',friend_id.eq.'+vpCurrentUser.id+'),and(user_id.eq.'+vpCurrentUser.id+',friend_id.eq.'+me.id+')').maybeSingle();
+  if(ex.data){notify('Já são amigos ou pedido enviado!','error');return;}
+  await sb.from('friendships').insert({user_id:me.id,friend_id:vpCurrentUser.id,status:'pending'});
+  notify('Pedido enviado para @'+vpCurrentUser.handle+'!');
+  document.getElementById('vp-add-btn').textContent='✅ Enviado';
+  document.getElementById('vp-add-btn').disabled=true;
+};
 window.viewProfile=function(userId){
   sb.from('profiles').select('*').eq('id',userId).single().then(function(r){
     if(!r.data)return;
@@ -763,6 +827,7 @@ window.viewProfile=function(userId){
     modal.querySelector('#vp-name').textContent=p.username||'?';
     modal.querySelector('#vp-handle').textContent='@'+(p.handle||'');
     modal.querySelector('#vp-bio').textContent=p.bio||'Sem descrição.';
+    vpCurrentUser=p;
     modal.classList.add('on');
   });
 };
@@ -800,6 +865,13 @@ function renderMsgs(msgs){
   c.scrollTop=c.scrollHeight;
 }
 
+function playNotif(){
+  try{
+    var a=new Audio('nitification.mp3');
+    a.volume=0.5;
+    a.play().catch(function(){});
+  }catch(e){}
+}
 function appendMsg(m,prData){
   var c=document.getElementById('msgs');
   document.getElementById('empty').style.display='none';
@@ -812,23 +884,24 @@ function appendMsg(m,prData){
   var g=document.createElement('div');g.className='mg';
   g.innerHTML='<div class="mg-av">'+avC+'</div><div class="mg-body"><div class="mg-header"><span class="mg-author" style="color:'+color+'">'+esc(au)+'</span><span class="mg-handle">@'+esc(hd)+'</span><span class="mg-time">'+time+'</span></div><div class="mg-content">'+esc(m.content)+'</div></div>';
   c.appendChild(g);c.scrollTop=c.scrollHeight;
+  var isMe2=m.user_id===me.id||m.sender_id===me.id;
+  if(!isMe2)playNotif();
 }
 
 window.sendMsg=async function(){
   var inp=document.getElementById('mi');var content=inp.value.trim();
   if(!content||!me)return;
   var btn=document.querySelector('.btn-s');btn.disabled=true;
+  inp.value='';inp.style.height='auto';
   if(dmMode&&dmTarget){
     var otherId=await getIdByHandle(dmTarget.handle);
     if(otherId){
-      var r=await sb.from('direct_messages').insert({sender_id:me.id,receiver_id:otherId,content:content}).select().single();
-      if(r.data){renderedIds.add(r.data.id);appendMsg(r.data,prof);}
+      await sb.from('direct_messages').insert({sender_id:me.id,receiver_id:otherId,content:content});
     }
   } else if(ch){
-    var r2=await sb.from('messages').insert({channel_id:ch.id,user_id:me.id,content:content}).select().single();
-    if(r2.data){renderedIds.add(r2.data.id);appendMsg(r2.data,prof);}
+    await sb.from('messages').insert({channel_id:ch.id,user_id:me.id,content:content});
   }
-  inp.value='';inp.style.height='auto';btn.disabled=false;inp.focus();
+  btn.disabled=false;inp.focus();
 };
 
 function subRT(){
@@ -836,7 +909,7 @@ function subRT(){
   if(!ch)return;
   rt=sb.channel('ch-'+ch.id)
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:'channel_id=eq.'+ch.id},async function(ev){
-      if(renderedIds.has(ev.new.id)){renderedIds.delete(ev.new.id);return;}
+      // show all realtime messages
       var pr=await sb.from('profiles').select('username,handle,avatar_url').eq('id',ev.new.user_id).single();
       appendMsg(ev.new,pr.data);
     }).subscribe();
@@ -897,8 +970,58 @@ window.doOut=async function(){
   }
 })();
 
+window.showCtx=function(e){
+  e.preventDefault();
+  var menu=document.getElementById('ctx-menu');
+  var inner=document.getElementById('ctx-inner');
+  inner.style.left=e.clientX+'px';
+  inner.style.top=e.clientY+'px';
+  menu.classList.add('on');
+};
+window.ctxMarkRead=function(){notify('Marcado como lido!');window.closeModal('ctx-menu');};
+window.ctxBlock=function(){notify('Usuário bloqueado!');window.closeModal('ctx-menu');};
+window.ctxCall=function(){
+  window.closeModal('ctx-menu');
+  window.startCall();
+};
+
+// Call interface
+window.startCall=function(){
+  var callDiv=document.getElementById('call-overlay');
+  callDiv.style.display='flex';
+};
+window.endCall=function(){document.getElementById('call-overlay').style.display='none';notify('Chamada encerrada.');};
+var micMuted=false;
+window.toggleMic=function(){
+  micMuted=!micMuted;
+  document.getElementById('mic-btn').textContent=micMuted?'🔇':'🎙️';
+  notify(micMuted?'Microfone mutado':'Microfone ativo');
+};
+
 // Refresh members every 30s
 setInterval(function(){if(me)loadMembers();}, 30000);
+// Call timer
+var callSeconds=0,callTimer=null;
+function startCallTimer(){
+  callSeconds=0;
+  callTimer=setInterval(function(){
+    callSeconds++;
+    var m=Math.floor(callSeconds/60),s=callSeconds%60;
+    var el=document.getElementById('call-timer');
+    if(el)el.textContent=(m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+  },1000);
+}
+var origStartCall=window.startCall;
+window.startCall=function(){
+  document.getElementById('call-overlay').style.display='flex';
+  startCallTimer();
+};
+var origEndCall=window.endCall;
+window.endCall=function(){
+  document.getElementById('call-overlay').style.display='none';
+  if(callTimer){clearInterval(callTimer);callTimer=null;}
+  notify('Chamada encerrada.');
+};
 
 sb.auth.getSession().then(function(r){if(r.data.session&&r.data.session.user)initApp(r.data.session.user);});
 sb.auth.onAuthStateChange(function(e,s){if(e==='SIGNED_IN'&&s&&s.user&&!me)initApp(s.user);});
