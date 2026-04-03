@@ -288,25 +288,26 @@ input:-webkit-autofill:focus {
 <div id="app">
   <!-- Barra de servidores (estilo Discord) -->
   <div class="srv-bar">
-    <div class="srv-logo" onclick="window.showChannels()" title="Code MSG">
+    <div class="srv-logo" onclick="window.showDMs()" title="Mensagens diretas" style="border-radius:50%">
       <img src="icone2.png" alt="logo"/>
     </div>
     <div class="srv-div"></div>
     <button class="srv-btn" id="btn-dms" onclick="window.showDMs()" title="Mensagens diretas">💬</button>
     <button class="srv-btn" id="btn-friends" onclick="window.openFriends()" title="Amigos">👥</button>
+    <button class="srv-btn" onclick="window.openSettings()" title="Configurações">⚙️</button>
   </div>
 
   <!-- Sidebar -->
   <div class="sidebar">
     <div class="sb-head" id="sb-title">
-      <span>Code MSG</span>
+      <span style="color:var(--accent)">Mensagens diretas</span>
     </div>
     <div class="sb-section" id="sb-content">
       <div class="sb-lbl">Canais <button onclick="null" title="Em breve">+</button></div>
       <div id="ch-list"></div>
     </div>
     <div class="sb-user">
-      <div class="u-av" id="u-av" onclick="window.openProfile()" title="Editar perfil">
+      <div class="u-av" id="u-av" onclick="window.openSettings()" title="Editar perfil">
         <span id="u-av-txt">?</span>
       </div>
       <div class="u-info">
@@ -314,7 +315,7 @@ input:-webkit-autofill:focus {
         <div class="u-handle" id="u-hd">@...</div>
       </div>
       <div class="u-actions">
-        <button class="icon-btn" onclick="window.openProfile()" title="Perfil">⚙️</button>
+        <button class="icon-btn" onclick="window.openSettings()" title="Configurações">⚙️</button>
         <button class="icon-btn danger" onclick="window.doOut()" title="Sair">⏏</button>
       </div>
     </div>
@@ -374,6 +375,48 @@ input:-webkit-autofill:focus {
       </div>
     </div>
     <div id="friends-list" style="display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto"></div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay" id="modal-settings">
+  <div class="modal" style="max-width:520px;max-height:80vh;overflow-y:auto">
+    <div class="modal-head">
+      <h2>⚙️ Configurações</h2>
+      <button class="modal-close" onclick="window.closeModal('modal-settings')">✕</button>
+    </div>
+    <!-- Profile section -->
+    <div style="border-bottom:1px solid var(--border);padding-bottom:16px;margin-bottom:16px">
+      <div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-family:'JetBrains Mono',monospace;margin-bottom:12px">Meu Perfil</div>
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+        <div id="settings-av" onclick="document.getElementById('settings-av-input').click()" style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--p),var(--accent));display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;cursor:pointer;overflow:hidden;border:3px solid var(--p);position:relative;flex-shrink:0"></div>
+        <input type="file" id="settings-av-input" accept="image/*" style="display:none" onchange="window.uploadSettingsAvatar(this)"/>
+        <div style="flex:1">
+          <div style="font-size:13px;color:var(--muted);margin-bottom:4px">Clique no avatar para trocar a foto</div>
+          <button onclick="document.getElementById('settings-av-input').click()" style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:6px 12px;color:var(--text);font-size:13px;font-family:Syne,sans-serif;cursor:pointer">📷 Trocar foto</button>
+        </div>
+      </div>
+      <!-- Crop/zoom controls -->
+      <div id="crop-controls" style="display:none;background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:12px">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-family:'JetBrains Mono',monospace">AJUSTAR FOTO</div>
+        <canvas id="crop-canvas" style="width:100%;border-radius:8px;max-height:200px;object-fit:contain;cursor:move"></canvas>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
+          <span style="font-size:12px;color:var(--muted)">Zoom</span>
+          <input type="range" id="crop-zoom" min="0.5" max="3" step="0.05" value="1" style="flex:1" oninput="window.updateCrop()"/>
+          <button onclick="window.saveCrop()" style="background:var(--accent);color:#000;border:none;border-radius:6px;padding:6px 14px;font-weight:700;font-size:13px;cursor:pointer">Salvar</button>
+        </div>
+      </div>
+      <div class="fg" style="margin-bottom:10px"><label>Nome</label><input type="text" id="settings-name" placeholder="Seu nome"/></div>
+      <div class="fg" style="margin-bottom:10px"><label>Bio</label><textarea id="settings-bio" placeholder="Fale sobre você..." style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:11px 14px;color:var(--text);font-size:14px;font-family:Syne,sans-serif;outline:none;width:100%;resize:none;height:70px;line-height:1.5"></textarea></div>
+      <button onclick="window.saveSettings()" class="btn-p">Salvar perfil</button>
+      <div class="alert" id="settings-msg" style="margin-top:8px"></div>
+    </div>
+    <!-- Account section -->
+    <div style="border-bottom:1px solid var(--border);padding-bottom:16px;margin-bottom:16px">
+      <div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-family:'JetBrains Mono',monospace;margin-bottom:12px">Conta</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:8px" id="settings-email"></div>
+      <button onclick="window.doOut()" style="background:rgba(255,68,102,.15);color:var(--red);border:1px solid var(--red);border-radius:8px;padding:10px 16px;font-weight:700;font-size:14px;font-family:Syne,sans-serif;cursor:pointer;width:100%">Sair da conta</button>
+    </div>
   </div>
 </div>
 
@@ -519,7 +562,6 @@ async function initApp(u){
   document.getElementById('auth').style.display='none';
   document.getElementById('app').classList.add('on');
   updateUserUI();
-  await loadChannels();
   // Presence tracking
   var presenceCh=sb.channel('presence-global');
   presenceCh.on('presence',{event:'sync'},function(){
@@ -749,7 +791,8 @@ async function loadFriendsList(){
 window.addFriend=async function(){
   var input=document.getElementById('add-friend-input').value.trim().replace('@','');
   if(!input){notify('Digite um @usuario!','error');return;}
-  if(prof&&input===prof.handle){notify('Voce nao pode se adicionar!','error');return;}
+  if(prof&&input===prof.handle){notify('Você não pode se adicionar!','error');return;}
+  if(me&&input===me.email){notify('Você não pode se adicionar!','error');return;}
   var r=await sb.from('profiles').select('id,username').eq('handle',input).single();
   if(!r.data){notify('Usuario @'+input+' nao encontrado!','error');return;}
   var ex=await sb.from('friendships').select('id').or('and(user_id.eq.'+me.id+',friend_id.eq.'+r.data.id+'),and(user_id.eq.'+r.data.id+',friend_id.eq.'+me.id+')').maybeSingle();
@@ -801,6 +844,107 @@ function addMemberEl(p,isOnline,list){
 }
 
 window.toggleMembers=function(){showMb=!showMb;document.getElementById('member-bar').style.display=showMb?'flex':'none';};
+
+// ── Settings ──
+window.openSettings=function(){
+  var p=prof||{};
+  // Avatar
+  var sav=document.getElementById('settings-av');
+  if(p.avatar_url){
+    sav.innerHTML='<img src="'+p.avatar_url+'" style="width:100%;height:100%;object-fit:cover" alt=""/>';
+  } else {
+    sav.textContent=(p.username||'?')[0].toUpperCase();
+  }
+  document.getElementById('settings-name').value=p.username||'';
+  document.getElementById('settings-bio').value=p.bio||'';
+  document.getElementById('settings-email').textContent='Email: '+(me?me.email:'');
+  document.getElementById('crop-controls').style.display='none';
+  openModal('modal-settings');
+};
+
+// Avatar upload with crop
+var cropImg=null, cropX=0, cropY=0, cropZoom=1, cropDragging=false, cropStartX=0, cropStartY=0;
+
+window.uploadSettingsAvatar=function(input){
+  var file=input.files[0]; if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    cropImg=new Image();
+    cropImg.onload=function(){
+      document.getElementById('crop-controls').style.display='block';
+      cropX=0; cropY=0; cropZoom=1;
+      document.getElementById('crop-zoom').value=1;
+      window.updateCrop();
+    };
+    cropImg.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+};
+
+window.updateCrop=function(){
+  var canvas=document.getElementById('crop-canvas');
+  var size=300;
+  canvas.width=size; canvas.height=size;
+  var ctx2=canvas.getContext('2d');
+  ctx2.clearRect(0,0,size,size);
+  // Draw circle clip
+  ctx2.save();
+  ctx2.beginPath(); ctx2.arc(size/2,size/2,size/2,0,Math.PI*2); ctx2.clip();
+  ctx2.fillStyle='#1a1a24'; ctx2.fillRect(0,0,size,size);
+  if(cropImg){
+    cropZoom=parseFloat(document.getElementById('crop-zoom').value)||1;
+    var w=cropImg.width*cropZoom, h=cropImg.height*cropZoom;
+    var x=(size-w)/2+cropX, y=(size-h)/2+cropY;
+    ctx2.drawImage(cropImg,x,y,w,h);
+  }
+  ctx2.restore();
+  // Circle border
+  ctx2.strokeStyle='var(--p)'; ctx2.lineWidth=3;
+  ctx2.beginPath(); ctx2.arc(size/2,size/2,size/2-2,0,Math.PI*2); ctx2.stroke();
+};
+
+// Canvas drag
+setTimeout(function(){
+  var canvas=document.getElementById('crop-canvas');
+  if(!canvas)return;
+  canvas.addEventListener('mousedown',function(e){cropDragging=true;cropStartX=e.clientX-cropX;cropStartY=e.clientY-cropY;});
+  canvas.addEventListener('mousemove',function(e){if(!cropDragging)return;cropX=e.clientX-cropStartX;cropY=e.clientY-cropStartY;window.updateCrop();});
+  canvas.addEventListener('mouseup',function(){cropDragging=false;});
+  canvas.addEventListener('mouseleave',function(){cropDragging=false;});
+  // Touch support
+  canvas.addEventListener('touchstart',function(e){cropDragging=true;cropStartX=e.touches[0].clientX-cropX;cropStartY=e.touches[0].clientY-cropY;},{passive:true});
+  canvas.addEventListener('touchmove',function(e){if(!cropDragging)return;cropX=e.touches[0].clientX-cropStartX;cropY=e.touches[0].clientY-cropStartY;window.updateCrop();},{passive:true});
+  canvas.addEventListener('touchend',function(){cropDragging=false;});
+},500);
+
+window.saveCrop=async function(){
+  var canvas=document.getElementById('crop-canvas');
+  canvas.toBlob(async function(blob){
+    var path=me.id+'/avatar_cropped.png';
+    var r=await sb.storage.from('avatars').upload(path,blob,{upsert:true,contentType:'image/png'});
+    if(r.error){notify('Erro ao salvar foto!','error');return;}
+    var url=sb.storage.from('avatars').getPublicUrl(path).data.publicUrl+'?t='+Date.now();
+    await sb.from('profiles').update({avatar_url:url}).eq('id',me.id);
+    prof.avatar_url=url;
+    updateUserUI();
+    var sav=document.getElementById('settings-av');
+    sav.innerHTML='<img src="'+url+'" style="width:100%;height:100%;object-fit:cover" alt=""/>';
+    document.getElementById('crop-controls').style.display='none';
+    notify('Foto atualizada! ✅');
+  },'image/png');
+};
+
+window.saveSettings=async function(){
+  var name=document.getElementById('settings-name').value.trim();
+  var bio=document.getElementById('settings-bio').value.trim();
+  if(!name){amsg('settings-msg','Digite seu nome!','e');return;}
+  var r=await sb.from('profiles').update({username:name,bio:bio}).eq('id',me.id);
+  if(r.error){amsg('settings-msg','Erro ao salvar!','e');return;}
+  prof.username=name; prof.bio=bio;
+  updateUserUI();
+  notify('Perfil salvo! ✅');
+  window.closeModal('modal-settings');
+};
 
 var vpCurrentUser = null;
 window.vpStartDM=function(){
@@ -920,8 +1064,21 @@ window.openProfile=function(){
   document.getElementById('prof-name').value=prof?prof.username:'';
   document.getElementById('prof-desc').value=prof&&prof.bio?prof.bio:'';
   document.getElementById('prof-handle').value=prof?prof.handle:'';
+  var nameEl=document.getElementById('prof-display-name');
+  var handleEl=document.getElementById('prof-display-handle');
+  if(nameEl)nameEl.textContent=prof?prof.username:'...';
+  if(handleEl)handleEl.textContent='@'+(prof?prof.handle:'...');
+  var emailEl=document.getElementById('acct-email');
+  var handleEl2=document.getElementById('acct-handle');
+  if(emailEl)emailEl.textContent=me?me.email:'...';
+  if(handleEl2)handleEl2.textContent='@'+(prof?prof.handle:'...');
   var pav=document.getElementById('profile-av-display');
-  pav.innerHTML=prof&&prof.avatar_url?'<img src="'+esc(prof.avatar_url)+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%" alt=""/>'+'<div style="position:absolute;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:11px;opacity:0;transition:.2s" class="av-hover">Trocar</div>':'<span style="font-size:32px;font-weight:700">'+(prof&&prof.username?prof.username[0]:'?').toUpperCase()+'</span>';
+  if(pav){
+    pav.innerHTML=prof&&prof.avatar_url?'<img src="'+esc(prof.avatar_url)+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%" alt=""/>':'<span style="font-size:32px;font-weight:700">'+(prof&&prof.username?prof.username[0]:'?').toUpperCase()+'</span>';
+  }
+  var ptxt=document.getElementById('profile-av-txt');
+  if(ptxt)ptxt.textContent='';
+  window.showSettingsTab('tab-profile');
   openModal('modal-profile');
 };
 
@@ -947,6 +1104,92 @@ window.saveProfile=async function(){
   updateUserUI();
   notify('Perfil salvo!');
   window.closeModal('modal-profile');
+};
+
+window.showSettingsTab=function(tabId){
+  document.querySelectorAll('.settings-tab').forEach(function(t){t.classList.remove('active');});
+  document.querySelectorAll('.settings-btn').forEach(function(b){b.classList.remove('active');});
+  document.getElementById(tabId).classList.add('active');
+  var btnId='s'+tabId;
+  var btn=document.getElementById(btnId);
+  if(btn)btn.classList.add('active');
+  if(tabId==='tab-devices')window.loadDevices();
+};
+
+window.loadDevices=function(){
+  var list=document.getElementById('devices-list');
+  if(!list)return;
+  var ua=navigator.userAgent;
+  var os=ua.includes('Windows')?'Windows':ua.includes('Mac')?'macOS':ua.includes('Linux')?'Linux':ua.includes('Android')?'Android':ua.includes('iPhone')?'iOS':'Desconhecido';
+  var type=ua.includes('Mobile')?'📱 Aplicativo mobile':'🖥️ Navegador web';
+  list.innerHTML='<div style="background:var(--bg2);border:2px solid var(--p);border-radius:12px;padding:16px;display:flex;align-items:center;gap:14px"><div style="font-size:28px">'+( os==='Windows'||os==='macOS'||os==='Linux'?'💻':'📱')+'</div><div><div style="font-size:15px;font-weight:700">'+type+' <span style="background:var(--p);color:#fff;font-size:11px;padding:2px 8px;border-radius:6px;margin-left:8px">Este dispositivo</span></div><div style="font-size:13px;color:var(--muted);margin-top:4px">'+os+' · Sessão atual</div></div></div>';
+};
+
+window.setStatus=function(status){
+  var labels={online:'Disponível',away:'Ausente',dnd:'Não perturbar',invisible:'Invisível'};
+  notify('Status: '+labels[status]+'!');
+  document.querySelectorAll('.status-btn').forEach(function(b){b.style.borderColor='var(--border)';});
+  event.target.closest('.status-btn').style.borderColor='var(--p)';
+};
+
+// Crop avatar
+var cropOffX=0,cropOffY=0,cropZoom=1,cropImg=null,isDragging=false,dragStartX=0,dragStartY=0;
+
+window.openCropModal=function(input){
+  var file=input.files[0];if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var img=document.getElementById('crop-img');
+    img.src=e.target.result;
+    cropOffX=0;cropOffY=0;cropZoom=1;
+    document.getElementById('crop-zoom').value=1;
+    img.style.transform='translate(-50%,-50%) scale(1)';
+    img.style.left='50%';img.style.top='50%';
+    cropImg=img;
+    img.onmousedown=function(ev){isDragging=true;dragStartX=ev.clientX-cropOffX;dragStartY=ev.clientY-cropOffY;ev.preventDefault();};
+    img.ontouchstart=function(ev){isDragging=true;dragStartX=ev.touches[0].clientX-cropOffX;dragStartY=ev.touches[0].clientY-cropOffY;};
+    document.onmouseup=document.ontouchend=function(){isDragging=false;};
+    document.onmousemove=function(ev){if(!isDragging)return;cropOffX=ev.clientX-dragStartX;cropOffY=ev.clientY-dragStartY;window.updateCrop();};
+    document.ontouchmove=function(ev){if(!isDragging)return;cropOffX=ev.touches[0].clientX-dragStartX;cropOffY=ev.touches[0].clientY-dragStartY;window.updateCrop();};
+    window.closeModal('modal-profile');
+    openModal('modal-crop');
+  };
+  reader.readAsDataURL(file);
+  input.value='';
+};
+
+window.updateCrop=function(){
+  cropZoom=parseFloat(document.getElementById('crop-zoom').value);
+  if(cropImg)cropImg.style.transform='translate(calc(-50% + '+cropOffX+'px), calc(-50% + '+cropOffY+'px)) scale('+cropZoom+')';
+};
+
+window.saveCrop=async function(){
+  if(!cropImg)return;
+  var canvas=document.createElement('canvas');
+  canvas.width=200;canvas.height=200;
+  var ctx2=canvas.getContext('2d');
+  ctx2.beginPath();ctx2.arc(100,100,100,0,Math.PI*2);ctx2.clip();
+  var container=document.getElementById('crop-img').parentElement;
+  var rect=container.getBoundingClientRect();
+  var circle={x:rect.left+rect.width/2,y:rect.top+rect.height/2};
+  var imgRect=cropImg.getBoundingClientRect();
+  var sx=(circle.x-100-imgRect.left)/cropZoom/imgRect.width*cropImg.naturalWidth;
+  var sy=(circle.y-100-imgRect.top)/cropZoom/imgRect.height*cropImg.naturalHeight;
+  var sw=200/cropZoom/imgRect.width*cropImg.naturalWidth;
+  var sh=200/cropZoom/imgRect.height*cropImg.naturalHeight;
+  ctx2.drawImage(cropImg,sx,sy,sw,sh,0,0,200,200);
+  canvas.toBlob(async function(blob){
+    var path=me.id+'/avatar.png';
+    var r=await sb.storage.from('avatars').upload(path,blob,{upsert:true,contentType:'image/png'});
+    if(r.error){notify('Erro ao salvar!','error');return;}
+    var url=sb.storage.from('avatars').getPublicUrl(path).data.publicUrl+'?t='+Date.now();
+    await sb.from('profiles').update({avatar_url:url}).eq('id',me.id);
+    prof.avatar_url=url;
+    updateUserUI();
+    notify('Foto salva!');
+    window.closeModal('modal-crop');
+    window.openProfile();
+  },'image/png');
 };
 
 window.doOut=async function(){
